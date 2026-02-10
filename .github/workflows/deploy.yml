@@ -2,40 +2,23 @@ name: deploy
 
 on:
   push:
-    branches: [ "main" ]
-  workflow_dispatch: {}
+    branches: [ main ]
 
 jobs:
   deploy:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
       - name: Deploy via SSH
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_KEY }}
-          port: ${{ secrets.SSH_PORT }}
-          script_stop: true
-          command_timeout: 10m
+          port: 22
           script: |
             set -e
-            echo "== whoami =="
-            whoami
-            echo "== server =="
-            hostname
-            echo "== pull repo =="
             cd /opt/wraith
-            git fetch --all
-            git reset --hard origin/main
-            echo "== restart backend =="
-            sudo systemctl restart wraith-backend || true
-            echo "== restart nginx =="
-            sudo systemctl restart nginx || true
-            echo "== status =="
-            sudo systemctl --no-pager --full status wraith-backend || true
-            sudo systemctl --no-pager --full status nginx || true
+            git pull
+            systemctl restart wraith-backend || true
+            systemctl restart nginx || true
