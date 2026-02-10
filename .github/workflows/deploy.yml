@@ -2,11 +2,12 @@ name: deploy
 
 on:
   push:
-    branches: [ "main" ]
+    branches: [ main ]
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
+
     steps:
       - name: Deploy via SSH
         uses: appleboy/ssh-action@v1.0.3
@@ -14,9 +15,8 @@ jobs:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_KEY }}
+          port: ${{ secrets.SSH_PORT }}
           script: |
-            set -e
             cd /opt/wraith
             git pull
-            sudo systemctl restart wraith-backend || true
-            sudo systemctl restart nginx || true
+            echo "DEPLOY OK $(date)" > DEPLOY_OK.txt
