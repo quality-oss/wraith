@@ -2,26 +2,34 @@ name: deploy
 
 on:
   push:
-    branches:
-      - main
+    branches: ["main"]
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Deploy via SSH
-        uses: appleboy/ssh-action@v1.0.3
+      - uses: actions/checkout@v4
+
+      # Загружаем приватный ключ в ssh-agent
+      - name: Setup SSH agent
+        uses: webfactory/ssh-agent@v0.9.0
         with:
-          host: ${{ secrets.SSH_HOST }}
-          username: ${{ secrets.SSH_USER }}
-          key: ${{ secrets.SSH_KEY }}
-          port: 22
-          script_stop: true
-          script: |
+          ssh-private-key: ${{ secrets.SSH_KEY }}
+
+      # Чтобы не спрашивал "Are you sure you want to continue connecting"
+      - name: Add host to known_hosts
+        run: |
+          mkdir -p ~/.ssh
+          ssh-keyscan -H "${{ secrets.SSH_HOST }}" >> ~/.ssh/known_hosts
+
+      - name: Deploy
+        run: |
+          ssh -o BatchMode=yes "${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}" << 'EOF'
             set -e
             cd /opt/wraith
             git pull
             systemctl restart wraith-backend || true
             systemctl restart nginx || true
-            echo "DEPLOY_OK $(date -u)" > DEPLOY_OK.txt
+            echo "DEPLOY_OK $(date -u)" > /opt/wraith/DEPLOY_OK.txt
+          EOF
